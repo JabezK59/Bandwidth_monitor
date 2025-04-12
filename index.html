@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced Bandwidth Monitor</title>
+    <style>
+        /* Global Styles */
+        body {
+            font-family: 'Arial', sans-serif;
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, #1e3c72, #2a5298);
+            color: #ffffff;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        /* Container Styles */
+        .container {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 30px;
+            border-radius: 12px;
+            text-align: center;
+            box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.2);
+            max-width: 400px;
+        }
+
+        h1 {
+            font-size: 2em;
+            margin-bottom: 10px;
+            color: #FFD700;
+        }
+
+        p {
+            font-size: 1.1em;
+            margin-bottom: 15px;
+        }
+
+        /* Button and Input Styles */
+        button, input {
+            padding: 10px;
+            margin-top: 10px;
+            font-size: 1em;
+            border: none;
+            border-radius: 5px;
+            outline: none;
+        }
+
+        button {
+            background: #FFD700;
+            color: #333;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background 0.3s ease, transform 0.2s;
+        }
+
+        button:hover {
+            background: #ffc107;
+            transform: scale(1.05);
+        }
+
+        input {
+            width: 80%;
+            background: #ffffff;
+            color: #333;
+        }
+
+        /* Output Container */
+        #output {
+            margin-top: 20px;
+            font-size: 1.1em;
+            text-align: left;
+        }
+
+        .result-card {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 8px;
+            box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.1);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Bandwidth Monitor</h1>
+        <p>Click the button below to check your network performance, IP, and system details.</p>
+        <p>
+            Enter the number of packets (max 50):
+            <input type="number" id="packetCount" placeholder="Enter packets" min="1" max="50">
+        </p>
+        <button id="checkBandwidth">Check Network</button>
+        <div id="output"></div>
+    </div>
+
+    <script>
+        async function getIPAddress() {
+            try {
+                const response = await fetch('https://api.ipify.org?format=json');
+                const data = await response.json();
+                return data.ip;
+            } catch (error) {
+                return 'Unable to fetch IP';
+            }
+        }
+
+        function getDeviceInfo() {
+            const userAgent = navigator.userAgent;
+            const platform = navigator.platform;
+            const browser = navigator.userAgentData?.brands ? navigator.userAgentData.brands[0].brand : "Unknown Browser";
+            const os = platform || "Unknown OS";
+            return { browser, os, userAgent };
+        }
+
+        function calculateHealthIndicator(ping, jitter, download, upload) {
+            let score = 100;
+            if (ping > 100) score -= 30;
+            if (jitter > 20) score -= 20;
+            if (download < 20) score -= 30;
+            if (upload < 5) score -= 20;
+            
+            if (score >= 80) return { grade: "Excellent", score };
+            if (score >= 50) return { grade: "Good", score };
+            return { grade: "Poor", score };
+        }
+
+        document.getElementById("checkBandwidth").addEventListener("click", async function () {
+            // Get the number of packets from the input field
+            const packetCountInput = document.getElementById("packetCount").value;
+            const packetCount = Math.min(Math.max(parseInt(packetCountInput) || 1, 1), 50); // Clamp between 1 and 50
+
+            // Simulate bandwidth usage
+            const downloadSpeed = (Math.random() * 100).toFixed(2); // Random download speed
+            const uploadSpeed = (Math.random() * 50).toFixed(2); // Random upload speed
+            const ping = (Math.random() * 100).toFixed(2); // Random ping
+            const jitter = (Math.random() * 20).toFixed(2); // Random jitter
+
+            // Fetch IP address
+            const ipAddress = await getIPAddress();
+
+            // Get device and browser info
+            const deviceInfo = getDeviceInfo();
+
+            // Calculate network health indicator
+            const health = calculateHealthIndicator(ping, jitter, downloadSpeed, uploadSpeed);
+
+            // Simulate traffic for the specified number of packets
+            const packetTraffic = Array.from({ length: packetCount }, () => ({
+                source: `192.168.${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 255)}`,
+                destination: `192.168.${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 255)}`,
+                size: `${Math.floor(Math.random() * 1500)} bytes`,
+                type: ['VoIP', 'Streaming', 'Gaming', 'Browsing'][Math.floor(Math.random() * 4)] // Random traffic type
+            }));
+
+            // Build output with updated styling
+            const output = document.getElementById("output");
+            output.innerHTML = `
+                <div class="result-card">
+                    <strong>IP Address:</strong> ${ipAddress}
+                </div>
+                <div class="result-card">
+                    <strong>Download Speed:</strong> ${downloadSpeed} Mbps
+                </div>
+                <div class="result-card">
+                    <strong>Upload Speed:</strong> ${uploadSpeed} Mbps
+                </div>
+                <div class="result-card">
+                    <strong>Ping:</strong> ${ping} ms
+                </div>
+                <div class="result-card">
+                    <strong>Jitter:</strong> ${jitter} ms
+                </div>
+                <div class="result-card">
+                    <strong>Network Health:</strong> ${health.grade} (Score: ${health.score}/100)
+                </div>
+                <div class="result-card">
+                    <strong>Device Info:</strong><br>
+                    OS: ${deviceInfo.os}<br>
+                    Browser: ${deviceInfo.browser}<br>
+                    User Agent: ${deviceInfo.userAgent}
+                </div>
+                <div class="result-card">
+                    <strong>Packet Traffic (Showing ${packetCount} packets):</strong>
+                    <ul>
+                        ${packetTraffic.map(packet => `<li>Source: ${packet.source}, Destination: ${packet.destination}, Size: ${packet.size}, Type: ${packet.type}</li>`).join('')}
+                    </ul>
+                </div>
+            `;
+        });
+    </script>
+</body>
+</html>
